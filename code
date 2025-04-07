@@ -1,0 +1,62 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.26;
+
+contract SecurityContract {
+    
+    address public owner;
+    
+    bool public paused;
+    
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event ContractPaused(address indexed account);
+    event ContractUnpaused(address indexed account);
+    event SensitiveActionExecuted(address indexed account, string message);
+    
+    constructor() {
+        owner = msg.sender;
+    }
+    
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Solo el propietario puede ejecutar esta funcion");
+        _;
+    }
+    
+    modifier whenNotPaused() {
+        require(!paused, "El contrato esta pausado");
+        _;
+    }
+    
+    function transferOwnership(address newOwner) public onlyOwner {
+        require(newOwner != address(0), "Nueva direccion invalida");
+        emit OwnershipTransferred(owner, newOwner);
+        owner = newOwner;
+    }
+    
+    function pause() public onlyOwner {
+        require(!paused, "El contrato ya esta pausado");
+        paused = true;
+        emit ContractPaused(msg.sender);
+    }
+    
+    function unpause() public onlyOwner {
+        require(paused, "El contrato no esta pausado");
+        paused = false;
+        emit ContractUnpaused(msg.sender);
+    }
+    
+    function sensitiveAction(string memory message) public whenNotPaused onlyOwner {
+        // Realiza alguna acción sensible, por ejemplo, actualizar una configuración crítica
+        // Se puede agregar lógica adicional aquí
+        emit SensitiveActionExecuted(msg.sender, message);
+    }
+    
+    function deposit() public payable whenNotPaused {
+        require(msg.value > 0, "Debe enviar algo de ETH");
+        // Procesamiento del deposito...
+    }
+    
+    function withdraw(uint256 amount) public onlyOwner whenNotPaused {
+        require(address(this).balance >= amount, "Fondos insuficientes en el contrato");
+        payable(owner).transfer(amount);
+    }
+}
